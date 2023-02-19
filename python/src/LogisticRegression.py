@@ -32,10 +32,10 @@ class LogisticRegression:
     # return function obejct to optimize later
     def derivative_likely_hood(self, y: np.ndarray, x: np.ndarray, idx: int):
         def derivative_likely_hood_function(b):
-            constants =  np.linalg.norm(y.transpose() * x * b)
+            constants =  np.dot(y.transpose(), (x * b))
             scala_part = 0
             for row in x:
-                tmp = math.exp(np.linalg.norm(row * self.b))
+                tmp = math.exp(np.dot(row, self.b))
                 scala_part =+ (row[idx] * tmp)/ (1 + tmp)
             return constants - scala_part
         return derivative_likely_hood_function
