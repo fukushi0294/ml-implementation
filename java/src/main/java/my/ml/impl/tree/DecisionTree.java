@@ -59,21 +59,25 @@ public class DecisionTree<T> {
      * - collection
      * to simplify, Let's start categorical input
      */
-    private List<Boolean> output;
 
     public void transform() {
 
     }
 
     // test each predicate and pick one which minimize entropy!
-    private void selectPredicate() {
+    private void selectPredicate(RealMatrix input) {
+        // column type is categorical -> predicate is simple
+        // column type is numeric -> predicate is complex one, so use logistic regression
+
 
     }
 
 
     // pick one col
-    private double test(List<Boolean> input, Predicate<Boolean> predicate) {
-        // split to two group by boolean value
+    // test given predicate function
+    // return entropy
+    private <ColumnType> double test(List<ColumnType> input, List<Boolean> output, Predicate<ColumnType> predicate) {
+        // split to two group by given predicate
         var g1 = new ArrayList<Boolean>();
         var g2 = new ArrayList<Boolean>();
         for (int i = 0; i < input.size(); i++) {
@@ -83,10 +87,7 @@ public class DecisionTree<T> {
                 g2.add(output.get(i));
             }
         }
-        // let's get entropy
-        var e1 = getEntropy(g1);
-        var e2 =getEntropy(g2);
-        return Math.min(e1, e2);
+        return Math.min(getEntropy(g1), getEntropy(g2));
     }
 
     private double getEntropy(List<Boolean> input) {
@@ -105,6 +106,5 @@ public class DecisionTree<T> {
             return -1 * portion * Math.log10(portion) / Math.log10(2);
         }).sum();
     }
-
 
 }
