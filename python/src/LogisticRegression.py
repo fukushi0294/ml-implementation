@@ -39,12 +39,15 @@ class LogisticRegression:
     # return function obejct to optimize later
     def derivative_likely_hood(self, y: np.ndarray, x: np.ndarray, b: np.ndarray):
         def derivative_likely_hood_function(input_b, idx_in_b: int):
-            _b = np.zeros(b.size)
+            _b = np.copy(b)
             _b[idx_in_b] = input_b
-            constants =  np.dot(y.transpose(), (x * _b))
+            row_size = x.shape[0]
+            one = np.ones((row_size,1))
+            _x = np.hstack((one, x.reshape(row_size, 1)))
+            constants =  np.dot(y.transpose(), np.dot(_x, _b))
             scala_part = 0
-            for row in x:
-                tmp = math.exp(np.dot(row, b))
+            for row in _x:
+                tmp = math.exp(np.dot(row, _b))
                 scala_part =+ (input_b * tmp)/ (1 + tmp)
             return constants - scala_part
         return derivative_likely_hood_function
@@ -56,12 +59,13 @@ class LogisticRegression:
     # 5. 2~4をbが更新されなくなるまで繰り返す
     def optimize(self, y: np.ndarray, x: np.ndarray):
         delta = 1.0e-8
-        b = np.zeros(len(x[0]))
-        b_new = np.ones(len(x[0]))
+        b_size = 2 if x.ndim == 1 else x.shape[1] + 1
+        b = np.ones(b_size)
+        b_new = np.ones(b_size)
         while True:
             for j, _ in enumerate(b):
                 derivative_likely_hood_f = self.derivative_likely_hood(y, x, b)
-                b_new[j] = optimize.newton(derivative_likely_hood_f, 1.5, arg = (j))
+                b_new[j] = optimize.newton(derivative_likely_hood_f, b[j], args = (j,))
             if np.linalg.norm(b - b_new) < delta:
                 break
             else:
