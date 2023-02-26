@@ -64,20 +64,31 @@ class LogisticRegression:
 
     # minimize likely hood by SGD
     def sgd(self, y: np.ndarray, X: np.ndarray):
-        delta = 1.0e-14
+        delta = 1.0e-3
         b_size = 2 if X.ndim == 1 else X.shape[1] + 1
         b = np.random.rand(b_size)
         lr = 0.1
         row_size = X.shape[0]
         one = np.ones((row_size, 1))
-        x = np.hstack((one, X))
+        x = np.append(one, X, axis=1)
         grads = []
         likely_hoods = []
         # TODO: iteration count is static
-        for _ in range(100):
-            grad = -self.derivative_log_likely_hood(y, x, b)
+        z = 0.1
+        for _ in range(500):
+            # Elastic Net
+            grad = -self.derivative_log_likely_hood(
+                y, x, b) + z*self.l1_penalty_grad(b) + (1-z) * self.l2_penalty_grad(b)
             grads.append(grad)
             b -= lr * grad
             likely_hoods.append(self.likely_hood(y, x, b))
             lr *= 0.9
         return b
+
+    def l1_penalty_grad(self, b: np.ndarray):
+        l1_norm = np.linalg.norm(b, ord=1)
+        return np.array([l1_norm / _b for _b in b])
+
+    def l2_penalty_grad(self, b: np.ndarray):
+        l2_norm = np.linalg.norm(b, ord=2)
+        return np.array([l2_norm / _b for _b in b])
