@@ -34,18 +34,26 @@ class LogisticRegression:
         p_mat = np.fabs(np.reciprocal(out) - 1)
         return np.apply_along_axis(lambda x: x > self.thresh_hold, 0, p_mat)
 
-    def likely_hood(self, y: np.ndarray, x: np.ndarray):
-        mat_part = np.multiply(y.transpose(), np.multiply(x, self.b))
+    def log_likely_hood(self, y: np.ndarray, x: np.ndarray, b: np.ndarray):
+        mat_part = np.dot(y.transpose(), np.dot(x, b))
         scala_part = 0
         for row in x:
-            scala_part = - (1 + math.exp(np.linalg.norm(row * self.b)))
-        return np.linalg.norm(mat_part) + scala_part
+            scala_part = + np.log(self.sigmoid(row, b))
+        return mat_part + scala_part
+
+    def likely_hood(self, y: np.ndarray, X: np.ndarray, b: np.ndarray):
+        p = 1
+        for idx, _y in enumerate(y):
+            x = X[idx]
+            prob = self.sigmoid(x, b)
+            p = p * math.pow(prob, _y) * math.pow(1 - prob, 1 - _y)
+        return p
 
     def sigmoid(self, x: np.ndarray, b: np.ndarray):
         # suppress overflow
         signal = np.clip(np.dot(x, b), -500, 500)
-        e = np.exp(signal)
-        return e / (1 + e)
+        e = np.exp(-signal)
+        return 1 / (1 + e)
 
     def derivative_log_likely_hood(self, y: np.ndarray, X: np.ndarray, b: np.ndarray):
         sum = np.zeros(b.shape[0])
@@ -62,11 +70,14 @@ class LogisticRegression:
         lr = 0.1
         row_size = X.shape[0]
         one = np.ones((row_size, 1))
-        x = np.hstack((one, X.reshape(row_size, 1)))
-        while True:
-            b_new = b - lr * self.derivative_log_likely_hood(y, x, b)
-            if np.linalg.norm(b - b_new) < delta:
-                break
-            else:
-                b = b_new
-        return b_new
+        x = np.hstack((one, X))
+        grads = []
+        likely_hoods = []
+        # TODO: iteration count is static
+        for _ in range(100):
+            grad = -self.derivative_log_likely_hood(y, x, b)
+            grads.append(grad)
+            b -= lr * grad
+            likely_hoods.append(self.likely_hood(y, x, b))
+            lr *= 0.9
+        return b
