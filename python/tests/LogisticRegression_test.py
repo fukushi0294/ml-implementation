@@ -11,7 +11,7 @@ class TestLogisticRegression(unittest.TestCase):
         df = df.dropna()
         y = df['Damage Incident'].to_numpy()
         X = df['Temperature'].to_numpy()
-        b = clf.optimize(y, X)
+        b = clf.sgd(y, X)
 
 if __name__ == '__main__':
     unittest.main()
