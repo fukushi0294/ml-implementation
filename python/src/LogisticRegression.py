@@ -21,37 +21,67 @@ class LogisticRegression:
         self.x = x
 
     def transform(self):
-        self.b = optimize(self.y, self.x)
+        self.W = optimize(self.y, self.x)
 
     def fit_transform(self, y: np.ndarray, x: np.ndarray):
         self.fit(y, x)
         self.transform(y, x)
 
-    def predict(self, x: np.ndarray):
-        # out: p/1-p
-        out = np.apply_along_axis(
-            lambda x: math.exp(np.dot(x, self.b)) + 1, 0, x)
-        p_mat = np.fabs(np.reciprocal(out) - 1)
+    def predict(self, X: np.ndarray):
+        p_mat = self.sigmoid(np.dot(X, self.W))
         return np.apply_along_axis(lambda x: x > self.thresh_hold, 0, p_mat)
 
-    def log_likely_hood(self, y: np.ndarray, x: np.ndarray, b: np.ndarray):
-        mat_part = np.dot(y.transpose(), np.dot(x, b))
-        scala_part = 0
-        for row in x:
-            scala_part = + np.log(self.sigmoid(row, b))
+    def log_likely_hood(self, X: np.ndarray, y: np.ndarray):
+        mat_part = np.dot(y.transpose(), np.dot(X, self.W))
+        scala_part = np.sum(np.apply_along_axis(lambda x: np.log(self.sigmoid(x, self.W)), 0, X))
         return mat_part + scala_part
 
-    def likely_hood(self, y: np.ndarray, X: np.ndarray, b: np.ndarray):
+    def likely_hood(self, y: np.ndarray, X: np.ndarray):
         p = 1
         for idx, _y in enumerate(y):
             x = X[idx]
-            prob = self.sigmoid(x, b)
+            # weights demention is 1
+            s = np.sum(np.dot(x, self.W))
+            prob = self.sigmoid(s)
             p = p * math.pow(prob, _y) * math.pow(1 - prob, 1 - _y)
         return p
+    
+    # TODO: move other class
+    def gradient(self, f, x: np.ndarray):
+        h = 1.0e-4
+        grad = np.zeros_like(x)
 
-    def sigmoid(self, x: np.ndarray, b: np.ndarray):
+        for idx in range(x.size):
+            tmp = x[idx]
+            x[idx] = tmp + h
+            fxh1 = f(x)
+
+            x[idx] = tmp - h
+            fxh2 = f(x)
+            grad = (fxh1 - fxh2) / (2*h)
+            x[idx] = tmp
+        return grad
+    
+    def numerical_grad(self, X: np.ndarray, y: np.ndarray):
+        loss_W = lambda _: - self.log_likely_hood(X, y)
+        return self.gradient(loss_W, self.W)
+
+    def simple_train(self, X: np.ndarray, y: np.ndarray):
+        b_size = 2 if X.ndim == 1 else X.shape[1] + 1
+        b = np.random.rand(b_size)
+        lr = 0.1
+        row_size = X.shape[0]
+        one = np.ones((row_size, 1))
+        x = np.append(one, X, axis=1)
+        for _ in range(500):
+            grad =  self.numerical_grad(x, y)
+            b -= lr * grad
+            lr *= 0.9
+        return b
+
+    def sigmoid(self, x: np.ndarray):
         # suppress overflow
-        signal = np.clip(np.dot(x, b), -500, 500)
+        signal = np.clip(x, -500, 500)
         e = np.exp(-signal)
         return 1 / (1 + e)
 
@@ -59,7 +89,7 @@ class LogisticRegression:
         sum = np.zeros(b.shape[0])
         for idx, _y in enumerate(y):
             x = X[idx]
-            sum += (_y - self.sigmoid(x, b)) * x
+            sum += (_y - self.sigmoid(np.dot(x, b))) * x
         return sum
 
     # minimize likely hood by SGD
