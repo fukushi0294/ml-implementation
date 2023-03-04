@@ -37,7 +37,7 @@ class LogisticRegression:
         log_part = np.log(1 + np.exp(XW))
         return np.sum(mat_part - log_part)
 
-    def likely_hood(self, y: np.ndarray, X: np.ndarray):
+    def likely_hood(self, X: np.ndarray, y: np.ndarray):
         XW = np.dot(X, self.W)
         prob = self.sigmoid(XW)
         likely_p = np.power(prob, y)
@@ -83,35 +83,25 @@ class LogisticRegression:
         e = np.exp(-signal)
         return 1 / (1 + e)
 
-    def derivative_log_likely_hood(self, y: np.ndarray, X: np.ndarray, b: np.ndarray):
-        sum = np.zeros(b.shape[0])
-        for idx, _y in enumerate(y):
-            x = X[idx]
-            sum += (_y - self.sigmoid(np.dot(x, b))) * x
-        return sum
+    def derivative_log_likely_hood(self, X: np.ndarray, y: np.ndarray):
+        XW = np.dot(X, self.W)
+        return np.dot(X.transpose(), (y - self.sigmoid(XW)))
 
     # minimize likely hood by SGD
-    def sgd(self, y: np.ndarray, X: np.ndarray):
-        delta = 1.0e-3
-        b_size = 2 if X.ndim == 1 else X.shape[1] + 1
-        b = np.random.rand(b_size)
+    def sgd(self, X: np.ndarray, y: np.ndarray):
+        self.W = np.random.randn(X.shape[1], 1)
         lr = 0.1
-        row_size = X.shape[0]
-        one = np.ones((row_size, 1))
-        x = np.append(one, X, axis=1)
         grads = []
         likely_hoods = []
         # TODO: iteration count is static
-        z = 0.1
         for _ in range(500):
             # Elastic Net
-            grad = -self.derivative_log_likely_hood(
-                y, x, b) + z*self.l1_penalty_grad(b) + (1-z) * self.l2_penalty_grad(b)
+            grad = -self.derivative_log_likely_hood(X, y)
             grads.append(grad)
-            b -= lr * grad
-            likely_hoods.append(self.likely_hood(y, x, b))
+            self.W -= lr * grad
+            likely_hoods.append(self.likely_hood(X, y))
             lr *= 0.9
-        return b
+        return self.W
 
     def l1_penalty_grad(self, b: np.ndarray):
         l1_norm = np.linalg.norm(b, ord=1)
