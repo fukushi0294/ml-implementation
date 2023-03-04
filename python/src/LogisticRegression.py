@@ -32,20 +32,18 @@ class LogisticRegression:
         return np.apply_along_axis(lambda x: x > self.thresh_hold, 0, p_mat)
 
     def log_likely_hood(self, X: np.ndarray, y: np.ndarray):
-        mat_part = np.dot(y.transpose(), np.dot(X, self.W))
-        scala_part = np.sum(np.apply_along_axis(lambda x: np.log(self.sigmoid(x, self.W)), 0, X))
-        return mat_part + scala_part
+        XW = np.dot(X, self.W)
+        mat_part = np.dot(y.transpose(), XW)
+        log_part = np.log(1 + np.exp(XW))
+        return np.sum(mat_part - log_part)
 
     def likely_hood(self, y: np.ndarray, X: np.ndarray):
-        p = 1
-        for idx, _y in enumerate(y):
-            x = X[idx]
-            # weights demention is 1
-            s = np.sum(np.dot(x, self.W))
-            prob = self.sigmoid(s)
-            p = p * math.pow(prob, _y) * math.pow(1 - prob, 1 - _y)
-        return p
-    
+        XW = np.dot(X, self.W)
+        prob = self.sigmoid(XW)
+        likely_p = np.power(prob, y)
+        unlikely_p = np.power(1-prob, 1 - y)
+        return np.prod(likely_p * unlikely_p)
+
     # TODO: move other class
     def gradient(self, f, x: np.ndarray):
         h = 1.0e-4
@@ -61,9 +59,9 @@ class LogisticRegression:
             grad = (fxh1 - fxh2) / (2*h)
             x[idx] = tmp
         return grad
-    
+
     def numerical_grad(self, X: np.ndarray, y: np.ndarray):
-        loss_W = lambda _: - self.log_likely_hood(X, y)
+        def loss_W(_): return - self.log_likely_hood(X, y)
         return self.gradient(loss_W, self.W)
 
     def simple_train(self, X: np.ndarray, y: np.ndarray):
@@ -74,7 +72,7 @@ class LogisticRegression:
         one = np.ones((row_size, 1))
         x = np.append(one, X, axis=1)
         for _ in range(500):
-            grad =  self.numerical_grad(x, y)
+            grad = self.numerical_grad(x, y)
             b -= lr * grad
             lr *= 0.9
         return b
