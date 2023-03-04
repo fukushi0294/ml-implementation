@@ -1,7 +1,8 @@
 import unittest
-from python.src.LogisticRegression import LogisticRegression
+from python.src.LogisticRegressor import LogisticRegressor
 import pandas as pd
 import numpy as np
+import python.src.common.optimizer as opt
 
 
 class TestLogisticRegression(unittest.TestCase):
@@ -18,13 +19,25 @@ class TestLogisticRegression(unittest.TestCase):
         return X, y
 
     def test_sgd(self):
-        clf = LogisticRegression()
+        clf = LogisticRegressor(optimizer=opt.SGD(learning_rate=0.1))
         X, y = self.load_test_data(100)
-        trained_W = clf.sgd(X, y)
+        trained_W = clf.fit(X, y)
+        print(trained_W)
+
+    def test_adagrad(self):
+        clf = LogisticRegressor(optimizer=opt.AdaGrad(learning_rate=0.1))
+        X, y = self.load_test_data(100)
+        trained_W = clf.fit(X, y)
+        print(trained_W)
+
+    def test_momentum(self):
+        clf = LogisticRegressor(optimizer=opt.Momentum(learning_rate=0.01))
+        X, y = self.load_test_data(100)
+        trained_W = clf.fit(X, y)
         print(trained_W)
 
     def test_likely_hood(self):
-        clf = LogisticRegression()
+        clf = LogisticRegressor(optimizer=opt.SGD(learning_rate=0.1))
         X, y = self.load_test_data(100)
         clf.W = np.array([[-1, 3, 5]]).transpose()
         lh = clf.likely_hood(X, y)
